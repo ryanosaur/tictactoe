@@ -1,5 +1,8 @@
-var ref = new Firebase("https://cht3game.firebaseio.com/adsjfasdjfsadjfklasdfjlsdakfjalskdjfkldsaflk");
-var gameRef = ref.child("game");
+var FB = {};
+
+var ref = new Firebase("https://tictactoe-ch.firebaseio.com/");
+var FB.gameRef = ref.child("game");
+FB.gridRef = ref.child('grid');
 
 $(document).ready(function(){
   $("button#Login").on("click", function(){
