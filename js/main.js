@@ -34,6 +34,10 @@ $(document).ready(function(){
 
 var Game = {};
 
+Game.isCellEmpty(cell){
+  return cell.text() === '';
+}
+
 Game.draw = function(clickedCell, currentMark){
   $('.cell[data-cell='+ clickedCell +']').text(currentMark).addClass(currentMark);
 }
