@@ -4,6 +4,7 @@ FB.ref = new Firebase("https://tictactoe-ch.firebaseio.com/");
 FB.gameRef = FB.ref.child("game");
 FB.playersRef = FB.gameRef.child("players");
 FB.gridRef = FB.gameRef.child("grid");
+FB.turnRef = FB.gameRef.child("turn");
 
 $(document).ready(function(){
   var clickedCell, currentMark, gridUpdate = {};
@@ -20,13 +21,13 @@ $(document).ready(function(){
 
   $(".cell").on("click", function() {
     currentMark = Game.currentMark();
-    if (currentMark) {
+    if (Game.yourTurn) {
       clickedCell = $(this).data('cell');
       console.log(clickedCell);
       gridUpdate = {};
       gridUpdate[clickedCell] = currentMark;
+      FB.turnRef.({lastMark:currentMark});
       FB.gridRef.update(gridUpdate);
-      $(this).addClass(currentMark).text(currentMark);
     }
   });
 });
@@ -35,6 +36,10 @@ var Game = {};
 
 Game.draw = function(clickedCell, currentMark){
   $('.cell[data-cell='+ clickedCell +']').text(currentMark).addClass(currentMark);
+}
+
+Game.yourTurn(){
+  return Game.currentMark !== Game.lastMark();
 }
 
 Game.currentMark = function() {
@@ -49,6 +54,7 @@ Game.currentMark = function() {
 
 FB.playersRef.on("value", assignPlayers);
 FB.gridRef.on("value", redrawGrid);
+FB.turnRef.on("value", storeLastMark);
 
 function assignPlayers(snap) {
   var players = snap.val();
@@ -67,8 +73,18 @@ function assignPlayers(snap) {
   $("#first-player").text(Game.players.x + " - X");
   $("#second-player").text(Game.players.o + " - O");
 }
+
 function redrawGrid(snap) {
-  console.log(snap.val());
+  var grid = snap.val(), gridDiv = $('');
+  $('.cell').removeClass('x o').text('');
+  for(var key in grid){
+    var mark = grid[key];
+    $('.cell[data-cell='+ key +']').addClass(mark).text(mark);
+  }
+}
+
+function storeLastMark(snap){
+  Game.lastMark = snap.val().lastMark;
 }
 
 Game.nextPlayer = function() {
