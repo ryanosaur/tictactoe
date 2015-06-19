@@ -6,8 +6,8 @@ FB.playersRef = FB.gameRef.child("players");
 FB.gridRef = FB.gameRef.child("grid");
 FB.turnRef = FB.gameRef.child("turn");
 
-$(document).ready(function(){
-  var clickedCell, currentMark, gridUpdate = {};
+$(document).ready(function() {
+  var clickedCell, currentUserMark, gridUpdate = {}, isMyTurn;
 
   $("button#Login").on("click", function(){
     FB.ref.authWithOAuthPopup("twitter", function(error, authData) {
@@ -20,14 +20,16 @@ $(document).ready(function(){
   });
 
   $(".cell").on("click", function() {
-    currentMark = Game.currentMark();
-    if (Game.yourTurn) {
-      clickedCell = $(this).data('cell');
-      console.log(clickedCell);
+    isMyTurn = Game.isMyTurn();
+    currentUserMark = Game.getCurrentUserMark();
+    if (isMyTurn) {
+      clickedCell = $(this).data("cell");
       gridUpdate = {};
-      gridUpdate[clickedCell] = currentMark;
-      FB.turnRef.({lastMark:currentMark});
+      gridUpdate[clickedCell] = currentUserMark;
+      FB.turnRef.set({ lastMark: currentUserMark })
       FB.gridRef.update(gridUpdate);
+      var claimedCells = $(".cell." + currentUserMark);
+      // claimedCells.map(function(i, c) { return $(c).data("win"); });
     }
   });
 });
@@ -37,16 +39,11 @@ var Game = {};
 Game.isCellEmpty(cell){
   return cell.text() === '';
 }
-
-Game.draw = function(clickedCell, currentMark){
-  $('.cell[data-cell='+ clickedCell +']').text(currentMark).addClass(currentMark);
+Game.isMyTurn = function() {
+  return (Game.lastMark || 'o') !== Game.getCurrentUserMark();
 }
 
-Game.yourTurn(){
-  return Game.currentMark !== Game.lastMark();
-}
-
-Game.currentMark = function() {
+Game.getCurrentUserMark = function() {
   if (Game.x === Game.currentUsername) {
     return 'x';
   }
@@ -62,7 +59,6 @@ FB.turnRef.on("value", storeLastMark);
 
 function assignPlayers(snap) {
   var players = snap.val();
-  console.log("Snap Val:", players);
   if (!players) {
     return;
   }
@@ -79,20 +75,21 @@ function assignPlayers(snap) {
 }
 
 function redrawGrid(snap) {
-  var grid = snap.val(), gridDiv = $('');
-  $('.cell').removeClass('x o').text('');
-  for(var key in grid){
-    var mark = grid[key];
-    $('.cell[data-cell='+ key +']').addClass(mark).text(mark);
+  var grid = snap.val(), mark;
+  $(".cell").removeClass("x o").text("");
+  for(key in grid) {
+    mark = grid[key];
+    $(".cell[data-cell=" + key + "]").addClass(mark).text(mark);
   }
 }
 
-function storeLastMark(snap){
-  Game.lastMark = snap.val().lastMark;
+function storeLastMark(snap) {
+  if (snap.val()) {
+    Game.lastMark = snap.val().lastMark;
+  }
 }
 
 Game.nextPlayer = function() {
-  console.log(this);
   if (!this.x) {
     return 'x';
   }
@@ -104,7 +101,6 @@ Game.nextPlayer = function() {
 
 var isNewUser = true;
 FB.ref.onAuth(function(authData) {
-  console.log("Auth:", authData);
   if (authData && isNewUser) {
     // save the user's profile into Firebase so we can list users,
     // use them in Security and Firebase Rules, and show profiles
@@ -116,7 +112,6 @@ FB.ref.onAuth(function(authData) {
       assignPlayers(snap);
       Game.currentUsername = authData.twitter.username;
       var options = {}, nextPlayer = Game.nextPlayer();
-      console.log(nextPlayer);
       if (nextPlayer) {
         options[nextPlayer] = Game.currentUsername;
         FB.playersRef.update(options);
