@@ -18,7 +18,7 @@ $(document).ready(function(){
   });
 
   $(".cell").on("click", function() {
-    var currentMark = Game.currentMark();
+    currentMark = Game.currentMark();
     if (currentMark) {
       clickedCell = $(this).data('cell');
       console.log(clickedCell);
