@@ -20,27 +20,48 @@ $(document).ready(function() {
   });
 
   $(".cell").on("click", function() {
+    var $cell = $(this);
     isMyTurn = Game.isMyTurn();
+    isCellEmpty = Game.isCellEmpty($cell);
     currentUserMark = Game.getCurrentUserMark();
-    if (isMyTurn) {
-      clickedCell = $(this).data("cell");
+    if(isMyTurn && isCellEmpty) {
+      turnCounter++;
+      clickedCell = $cell.data("cell");
       gridUpdate = {};
       gridUpdate[clickedCell] = currentUserMark;
       FB.turnRef.set({ lastMark: currentUserMark })
       FB.gridRef.update(gridUpdate);
       var claimedCells = $(".cell." + currentUserMark);
-      // claimedCells.map(function(i, c) { return $(c).data("win"); });
+      var count = {};
+      claimedCells.map(function(i, c) {
+        $(c).data("win").split(',').map(function(cell){
+          count[cell] ? count[cell]++ : count[cell] = 1;
+        });
+      });
+      Object.keys(count).forEach(function(win){
+        if(count[win] === 3){
+          alert(currentUserMark + ' wins!');
+          FB.gridRef.set({});
+          var yieldingPlayer = currentUserMark === 'x' ? 'o' : 'x';
+          FB.turnRef.set({lastMark:yieldingPlayer});
+        }
+      });
+      if($('.cell:empty').length === 0){
+        alert('Stalemate. No one wins.');
+        FB.gridRef.set({});
+      }
     }
   });
 });
 
 var Game = {};
 
-Game.isCellEmpty(cell){
+Game.isCellEmpty = function(cell){
   return cell.text() === '';
 }
+
 Game.isMyTurn = function() {
-  return (Game.lastMark || 'o') !== Game.getCurrentUserMark();
+  return Game.lastMark !== Game.getCurrentUserMark();
 }
 
 Game.getCurrentUserMark = function() {
@@ -66,10 +87,6 @@ function assignPlayers(snap) {
   Game.x = players.x;
   Game.o = players.o;
 
-  for(var cell in game.grid){
-    Game.draw(cell, game.grid[cell]);
-  }
-
   $("#first-player").text(Game.players.x + " - X");
   $("#second-player").text(Game.players.o + " - O");
 }
@@ -84,9 +101,9 @@ function redrawGrid(snap) {
 }
 
 function storeLastMark(snap) {
-  if (snap.val()) {
-    Game.lastMark = snap.val().lastMark;
-  }
+  var initialState = 'o';
+  Game.lastMark = snap.val() ? snap.val().lastMark : initialState;
+  $('#current-turn').text(Game.lastMark === 'x' ? 'O' : 'X');
 }
 
 Game.nextPlayer = function() {
@@ -122,11 +139,11 @@ FB.ref.onAuth(function(authData) {
 
 function getName(authData) {
   switch(authData.provider) {
-     case 'password':
-       return authData.password.email.replace(/@.*/, '');
-     case 'twitter':
-       return authData.twitter.displayName;
-     case 'facebook':
-       return authData.facebook.displayName;
+    case 'password':
+      return authData.password.email.replace(/@.*/, '');
+case 'twitter':
+  return authData.twitter.displayName;
+case 'facebook':
+  return authData.facebook.displayName;
   }
 }

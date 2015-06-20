@@ -26,6 +26,10 @@ html {
  * Customize the background color to match your design.
  */
 
+#current-turn{
+  font-size:3em;
+}
+
 ::-moz-selection {
     background: #b3d4fc;
     text-shadow: none;
